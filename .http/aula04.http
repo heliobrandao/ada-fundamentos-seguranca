@@ -1,0 +1,140 @@
+### Requisições da Aula 04 para o cliente HTTP do IntelliJ (selecione o ambiente "dev").
+### Para os Tópicos 1, 2 e 3 (Revisão de JWT: falsificação, chaves e expiração), use as seções 4, 5 e 6 do arquivo http/aula03.http!
+### Abaixo estão as requisições práticas dos Tópicos 4, 5 (OAuth 2.0) e 6 (Access Token + Refresh Token).
+
+############################################################
+### TÓPICOS 4 E 5: OAUTH 2.0 PLAYGROUND (Authorization Code + PKCE, Escopos e Client Credentials)
+############################################################
+
+### 1.1 [Authorization Code + PKCE] Passo 1: A Ana (Resource Owner) autoriza o "app-impressao" (Client)
+###     com o escopo "fotos:leitura".
+###     PKCE: codeVerifier = "meu-segredo-pkce-123"
+###           codeChallenge (SHA-256 hex de "meu-segredo-pkce-123") = "8765359d832d82a372f2c0d38c0632c823331bc35f39c214c6506ca938c9166f"
+POST {{host}}/oauth/autorizar
+Content-Type: application/json
+
+{
+  "username": "ana",
+  "password": "senha123",
+  "clientId": "app-impressao",
+  "scope": "fotos:leitura",
+  "state": "xyz-anti-csrf-987",
+  "codeChallenge": "8765359d832d82a372f2c0d38c0632c823331bc35f39c214c6506ca938c9166f"
+}
+
+> {% client.global.set("oauthCode", response.body.code); %}
+
+### 1.2 [PKCE em ação] Um atacante intercepta o "code", mas NÃO sabe o codeVerifier: 401!
+POST {{host}}/oauth/token
+Content-Type: application/json
+
+{
+  "grantType": "authorization_code",
+  "code": "{{oauthCode}}",
+  "clientId": "app-impressao",
+  "codeVerifier": "chute-errado-do-atacante"
+}
+
+### 1.3 Passo 2: O "app-impressao" troca o "code" + o "codeVerifier" verdadeiro pelo Access Token: 200 OK
+POST {{host}}/oauth/token
+Content-Type: application/json
+
+{
+  "grantType": "authorization_code",
+  "code": "{{oauthCode}}",
+  "clientId": "app-impressao",
+  "codeVerifier": "meu-segredo-pkce-123"
+}
+
+> {% client.global.set("oauthAccessToken", response.body.accessToken); %}
+
+### 1.4 Tentar usar o MESMO "code" uma segunda vez: 401 (o código é de uso único!)
+POST {{host}}/oauth/token
+Content-Type: application/json
+
+{
+  "grantType": "authorization_code",
+  "code": "{{oauthCode}}",
+  "clientId": "app-impressao",
+  "codeVerifier": "meu-segredo-pkce-123"
+}
+
+### 1.5 Passo 3: O "app-impressao" chama a API de Fotos (Resource Server) para LER as fotos: 200 OK
+GET {{host}}/oauth/recursos/fotos
+Authorization: Bearer {{oauthAccessToken}}
+
+### 1.6 Passo 4: O "app-impressao" tenta APAGAR as fotos da Ana: 403 Forbidden (Escopo insuficiente!)
+DELETE {{host}}/oauth/recursos/fotos
+Authorization: Bearer {{oauthAccessToken}}
+
+### 1.7 [Client Credentials — Sistema a Sistema, sem usuário] O "servico-relatorios" pede um token M2M: 200 OK
+POST {{host}}/oauth/token
+Content-Type: application/json
+
+{
+  "grantType": "client_credentials",
+  "clientId": "servico-relatorios",
+  "clientSecret": "segredo-relatorios-123",
+  "scope": "relatorios:leitura"
+}
+
+> {% client.global.set("tokenM2M", response.body.accessToken); %}
+
+### 1.8 O "servico-relatorios" acessa o endpoint de relatórios com o seu token: 200 OK
+GET {{host}}/oauth/recursos/relatorios
+Authorization: Bearer {{tokenM2M}}
+
+
+############################################################
+### TÓPICO 6: ACCESS TOKEN (15 min) + REFRESH TOKEN (7 dias), ROTAÇÃO E DETECÇÃO DE REUSO
+############################################################
+
+### 2.1 Login da Ana: devolve o par { accessToken, refreshToken }
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{"username": "ana", "password": "senha123"}
+
+> {%
+client.global.set("accessToken", response.body.accessToken);
+client.global.set("refreshTokenAntigo", response.body.refreshToken);
+%}
+
+### 2.2 Acessar /auth/me com o Access Token: 200 OK
+GET {{host}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+### 2.3 Acessar /auth/me SEM token: 401 Unauthorized
+GET {{host}}/auth/me
+
+### 2.4 Tentar usar o Refresh Token para chamar /auth/me: 401 (token_use="refresh" não abre rotas comuns!)
+GET {{host}}/auth/me
+Authorization: Bearer {{refreshTokenAntigo}}
+
+### 2.5 Acessar /auth/admin/painel com a Ana (USER): 403 Forbidden (autenticada, mas sem o papel ADMIN)
+GET {{host}}/auth/admin/painel
+Authorization: Bearer {{accessToken}}
+
+### 2.6 ROTAÇÃO: Renovar em /auth/refresh -> invalida o refresh antigo e devolve um PAR NOVO!
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{"refreshToken": "{{refreshTokenAntigo}}"}
+
+> {%
+client.global.set("accessTokenNovo", response.body.accessToken);
+client.global.set("refreshTokenNovo", response.body.refreshToken);
+%}
+
+### 2.7 DETECÇÃO DE REUSO (Alarme de Roubo!): Alguém tenta usar o refreshTokenAntigo (já gasto) de novo -> 401!
+###     Olhe o console do servidor: o reuso foi detectado e TODOS os refresh tokens da Ana foram revogados!
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{"refreshToken": "{{refreshTokenAntigo}}"}
+
+### 2.8 Prova do alarme: até o refreshTokenNovo deixou de valer (401)! A Ana precisa fazer login de novo.
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{"refreshToken": "{{refreshTokenNovo}}"}

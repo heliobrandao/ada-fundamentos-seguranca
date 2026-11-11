@@ -1,0 +1,605 @@
+{
+  "info": {
+    "_postman_id": "a4b8e9d0-1234-4ef8-9a01-ada000000004",
+    "name": "Ada - Fundamentos de Seguranca (Aula 03 & Aula 04)",
+    "description": "Colecao completa das requisicoes das Aulas 03 (Sessao e JWT) e 04 (OAuth 2.0 Playground + Access/Refresh Token Rotation). Compativel com Postman e Yaak.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "host", "value": "http://localhost:8080", "type": "string" },
+    { "key": "algNoneHeader", "value": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0", "type": "string" },
+    { "key": "algNonePayload", "value": "eyJpc3MiOiJhZGEtc2VndXJhbmNhIiwic3ViIjoiYW5hIiwicm9sZSI6IkFETUlOIiwiZXhwIjo0MTAyNDQ0ODAwfQ", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "tokenAdmin", "value": "", "type": "string" },
+    { "key": "tokenExpirado", "value": "", "type": "string" },
+    { "key": "tokenBiblioteca", "value": "", "type": "string" },
+    { "key": "tokenCurto", "value": "", "type": "string" },
+    { "key": "tokenDesafio", "value": "", "type": "string" },
+    { "key": "oauthCode", "value": "", "type": "string" },
+    { "key": "oauthAccessToken", "value": "", "type": "string" },
+    { "key": "tokenM2M", "value": "", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshTokenAntigo", "value": "", "type": "string" },
+    { "key": "accessTokenNovo", "value": "", "type": "string" },
+    { "key": "refreshTokenNovo", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Aula 03 - Revisao JWT (Topicos 1, 2 e 3 da Aula 04)",
+      "item": [
+        {
+          "name": "2.1 Login por Token (ana)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.token) {",
+                  "  pm.collectionVariables.set('token', res.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ana\",\n  \"password\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/login",
+              "host": ["{{host}}"],
+              "path": ["jwt", "login"]
+            }
+          }
+        },
+        {
+          "name": "3.1 Decodificar JWT sem chave",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/decodificar",
+              "host": ["{{host}}"],
+              "path": ["jwt", "decodificar"]
+            }
+          }
+        },
+        {
+          "name": "4.1 Validar um token verdadeiro (valido = true)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/validar",
+              "host": ["{{host}}"],
+              "path": ["jwt", "validar"]
+            }
+          }
+        },
+        {
+          "name": "4.2 Token SEM assinatura (alg: none) -> Recusado",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{algNoneHeader}}.{{algNonePayload}}.\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/validar",
+              "host": ["{{host}}"],
+              "path": ["jwt", "validar"]
+            }
+          }
+        },
+        {
+          "name": "4.3a Gerar token ja expirado (-10s)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.token) {",
+                  "  pm.collectionVariables.set('tokenExpirado', res.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"ana\",\n  \"expiraEmSegundos\": -10\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/gerar",
+              "host": ["{{host}}"],
+              "path": ["jwt", "gerar"]
+            }
+          }
+        },
+        {
+          "name": "4.3b Validar token expirado -> Recusado",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{tokenExpirado}}\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/validar",
+              "host": ["{{host}}"],
+              "path": ["jwt", "validar"]
+            }
+          }
+        },
+        {
+          "name": "4.5 Gerar com biblioteca java-jwt (Auth0)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.token) {",
+                  "  pm.collectionVariables.set('tokenBiblioteca', res.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"bia\",\n  \"perfil\": \"USER\",\n  \"expiraEmSegundos\": 300\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/biblioteca/gerar",
+              "host": ["{{host}}"],
+              "path": ["jwt", "biblioteca", "gerar"]
+            }
+          }
+        },
+        {
+          "name": "4.6 Validar token da biblioteca no validador manual -> Aceito",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{tokenBiblioteca}}\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/validar",
+              "host": ["{{host}}"],
+              "path": ["jwt", "validar"]
+            }
+          }
+        },
+        {
+          "name": "5.1 Gerar token curto (20 segundos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.token) {",
+                  "  pm.collectionVariables.set('tokenCurto', res.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"ana\",\n  \"perfil\": \"USER\",\n  \"expiraEmSegundos\": 20\n}"
+            },
+            "url": {
+              "raw": "{{host}}/jwt/gerar",
+              "host": ["{{host}}"],
+              "path": ["jwt", "gerar"]
+            }
+          }
+        },
+        {
+          "name": "5.2 Usar token curto (200 agora, 401 apos 20s)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenCurto}}" }],
+            "url": {
+              "raw": "{{host}}/jwt/protegido",
+              "host": ["{{host}}"],
+              "path": ["jwt", "protegido"]
+            }
+          }
+        },
+        {
+          "name": "6.1 Desafio da Chave Fraca: Pegar token USER",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.token) {",
+                  "  pm.collectionVariables.set('tokenDesafio', res.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}/jwt/desafio/token",
+              "host": ["{{host}}"],
+              "path": ["jwt", "desafio", "token"]
+            }
+          }
+        },
+        {
+          "name": "6.2 Desafio: Tentar acessar /admin com token USER -> 403",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenDesafio}}" }],
+            "url": {
+              "raw": "{{host}}/jwt/desafio/admin",
+              "host": ["{{host}}"],
+              "path": ["jwt", "desafio", "admin"]
+            }
+          }
+        },
+        {
+          "name": "6.3 Desafio: Acessar /admin com token forjado no jwt.io (chave: ada123)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer " }],
+            "url": {
+              "raw": "{{host}}/jwt/desafio/admin",
+              "host": ["{{host}}"],
+              "path": ["jwt", "desafio", "admin"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Aula 04 - Parte 1: OAuth 2.0 Playground (Topicos 4 e 5)",
+      "item": [
+        {
+          "name": "1.1 [Auth Code + PKCE] Passo 1: Ana autoriza app-impressao (fotos:leitura)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.code) {",
+                  "  pm.collectionVariables.set('oauthCode', res.code);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ana\",\n  \"password\": \"senha123\",\n  \"clientId\": \"app-impressao\",\n  \"scope\": \"fotos:leitura\",\n  \"state\": \"xyz-anti-csrf-987\",\n  \"codeChallenge\": \"8765359d832d82a372f2c0d38c0632c823331bc35f39c214c6506ca938c9166f\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/oauth/autorizar",
+              "host": ["{{host}}"],
+              "path": ["oauth", "autorizar"]
+            }
+          }
+        },
+        {
+          "name": "1.2 [PKCE em acao] Atacante tenta trocar code com codeVerifier errado -> 401",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grantType\": \"authorization_code\",\n  \"code\": \"{{oauthCode}}\",\n  \"clientId\": \"app-impressao\",\n  \"codeVerifier\": \"chute-errado-do-atacante\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/oauth/token",
+              "host": ["{{host}}"],
+              "path": ["oauth", "token"]
+            }
+          }
+        },
+        {
+          "name": "1.3 Passo 2: app-impressao troca code + codeVerifier correto pelo Access Token -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.accessToken) {",
+                  "  pm.collectionVariables.set('oauthAccessToken', res.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grantType\": \"authorization_code\",\n  \"code\": \"{{oauthCode}}\",\n  \"clientId\": \"app-impressao\",\n  \"codeVerifier\": \"meu-segredo-pkce-123\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/oauth/token",
+              "host": ["{{host}}"],
+              "path": ["oauth", "token"]
+            }
+          }
+        },
+        {
+          "name": "1.4 Tentar reutilizar o MESMO code uma segunda vez -> 401",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grantType\": \"authorization_code\",\n  \"code\": \"{{oauthCode}}\",\n  \"clientId\": \"app-impressao\",\n  \"codeVerifier\": \"meu-segredo-pkce-123\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/oauth/token",
+              "host": ["{{host}}"],
+              "path": ["oauth", "token"]
+            }
+          }
+        },
+        {
+          "name": "1.5 Passo 3: app-impressao le as fotos da Ana (GET /oauth/recursos/fotos) -> 200",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{oauthAccessToken}}" }],
+            "url": {
+              "raw": "{{host}}/oauth/recursos/fotos",
+              "host": ["{{host}}"],
+              "path": ["oauth", "recursos", "fotos"]
+            }
+          }
+        },
+        {
+          "name": "1.6 Passo 4: app-impressao tenta APAGAR as fotos (DELETE) -> 403 Escopo Insuficiente",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{oauthAccessToken}}" }],
+            "url": {
+              "raw": "{{host}}/oauth/recursos/fotos",
+              "host": ["{{host}}"],
+              "path": ["oauth", "recursos", "fotos"]
+            }
+          }
+        },
+        {
+          "name": "1.7 [Client Credentials M2M] servico-relatorios pede token sem usuario -> 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.accessToken) {",
+                  "  pm.collectionVariables.set('tokenM2M', res.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grantType\": \"client_credentials\",\n  \"clientId\": \"servico-relatorios\",\n  \"clientSecret\": \"segredo-relatorios-123\",\n  \"scope\": \"relatorios:leitura\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/oauth/token",
+              "host": ["{{host}}"],
+              "path": ["oauth", "token"]
+            }
+          }
+        },
+        {
+          "name": "1.8 [Client Credentials M2M] servico-relatorios acessa relatorios -> 200",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenM2M}}" }],
+            "url": {
+              "raw": "{{host}}/oauth/recursos/relatorios",
+              "host": ["{{host}}"],
+              "path": ["oauth", "recursos", "relatorios"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Aula 04 - Parte 2: Access + Refresh Token Rotation (Topico 6)",
+      "item": [
+        {
+          "name": "2.1 Login da Ana -> Devolve par { accessToken, refreshToken }",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', res.accessToken);",
+                  "  pm.collectionVariables.set('refreshTokenAntigo', res.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ana\",\n  \"password\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/auth/login",
+              "host": ["{{host}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Acessar /auth/me com Access Token -> 200 OK",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{host}}/auth/me",
+              "host": ["{{host}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "2.3 Acessar /auth/me SEM token -> 401 Unauthorized",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}/auth/me",
+              "host": ["{{host}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "2.4 Tentar usar Refresh Token em /auth/me -> 401 (token_use=refresh bloqueado!)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{refreshTokenAntigo}}" }],
+            "url": {
+              "raw": "{{host}}/auth/me",
+              "host": ["{{host}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "2.5 Acessar /auth/admin/painel com Ana (USER) -> 403 Forbidden",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{host}}/auth/admin/painel",
+              "host": ["{{host}}"],
+              "path": ["auth", "admin", "painel"]
+            }
+          }
+        },
+        {
+          "name": "2.6 ROTACAO: Renovar em /auth/refresh -> Invalida antigo e emite par novo!",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.accessToken) {",
+                  "  pm.collectionVariables.set('accessTokenNovo', res.accessToken);",
+                  "  pm.collectionVariables.set('refreshTokenNovo', res.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshTokenAntigo}}\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/auth/refresh",
+              "host": ["{{host}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "2.7 DETECCAO DE REUSO (Alarme!): Tentar usar refreshTokenAntigo de novo -> 401 + Revoga Familia!",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshTokenAntigo}}\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/auth/refresh",
+              "host": ["{{host}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "2.8 Prova do Alarme: Ate o refreshTokenNovo foi revogado -> 401!",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshTokenNovo}}\"\n}"
+            },
+            "url": {
+              "raw": "{{host}}/auth/refresh",
+              "host": ["{{host}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
