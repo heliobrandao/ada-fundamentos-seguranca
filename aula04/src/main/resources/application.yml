@@ -1,0 +1,11 @@
+resilience4j:
+  ratelimiter:
+    instances:
+      alunoService:
+        limitForPeriod: 1
+        limitRefreshPeriod: 10s
+        timeoutDuration: 0s
+
+app:
+  demo:
+    jwt-secret: ${JWT_DEMO_SECRET:chave-de-demonstracao-da-aula-03-nao-use-em-producao}
