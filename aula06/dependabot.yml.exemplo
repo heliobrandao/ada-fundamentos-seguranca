@@ -1,0 +1,7 @@
+# Exemplo de configuração do Dependabot (em um repositório real, fica em .github/dependabot.yml)
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
