@@ -1,0 +1,229 @@
+{
+  "info": {
+    "_postman_id": "a6f01306-0006-4006-8006-000000000006",
+    "name": "Ada Segurança — Aula 06 (SQL Injection & Tratamento de Exceções)",
+    "description": "Coleção da Aula 06 do módulo BE-JV-013 (Fundamentos de Segurança para Aplicações).\n\nComo iniciar a API:\n`mvn -pl aula06 spring-boot:run`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Parte 1 — SQL Injection vs. PreparedStatement",
+      "item": [
+        {
+          "name": "1.1 Busca normal (endpoint vulnerável)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/alunos/pesquisa/vulneravel?nome=Batman",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos", "pesquisa", "vulneravel"],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "Batman"
+                }
+              ]
+            },
+            "description": "Uso esperado do endpoint vulnerável: retorna apenas o registro de 'Batman'."
+          }
+        },
+        {
+          "name": "1.2 ATAQUE SQL Injection (x' OR '1'='1) -> Vaza todos os 4 alunos!",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/alunos/pesquisa/vulneravel?nome=x' OR '1'='1",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos", "pesquisa", "vulneravel"],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "x' OR '1'='1"
+                }
+              ]
+            },
+            "description": "Transforma o SQL em: SELECT * FROM alunos WHERE nome = 'x' OR '1'='1' — vazando toda a tabela!"
+          }
+        },
+        {
+          "name": "1.3 Busca normal (endpoint corrigido com ?)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/alunos/pesquisa?nome=Batman",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos", "pesquisa"],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "Batman"
+                }
+              ]
+            },
+            "description": "Uso normal do endpoint parametrizado com PreparedStatement (?)."
+          }
+        },
+        {
+          "name": "1.4 ATAQUE SQL Injection BLOQUEADO (endpoint corrigido com ?)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/alunos/pesquisa?nome=x' OR '1'='1",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos", "pesquisa"],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "x' OR '1'='1"
+                }
+              ]
+            },
+            "description": "Com PreparedStatement, o SQL e o dado viajam separados. O banco procura literalmente alguém com o nome \"x' OR '1'='1\" e devolve []."
+          }
+        },
+        {
+          "name": "1.5 Busca parcial segura com LIKE (% no parâmetro)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/alunos/pesquisa/like?termo=man",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos", "pesquisa", "like"],
+              "query": [
+                {
+                  "key": "termo",
+                  "value": "man"
+                }
+              ]
+            },
+            "description": "Demonstra como usar LIKE com segurança: os '%' são concatenados ao valor do argumento em Java, nunca ao texto SQL."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parte 2 — Tratamento Seguro e Global de Exceções",
+      "item": [
+        {
+          "name": "2.1 Busca por ID existente (200 OK)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/alunos/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos", "1"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Busca por ID inexistente -> 404 Not Found (AlunoNaoEncontradoException)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/alunos/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos", "999"]
+            },
+            "description": "Retorna 404 Not Found no formato padronizado ErroResponse(status, erro, mensagem, timestamp)."
+          }
+        },
+        {
+          "name": "2.3 Rede de segurança: Erro inesperado -> 500 Genérico (sem vazar jdbc/stack trace)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/erro-teste",
+              "host": ["{{baseUrl}}"],
+              "path": ["erro-teste"]
+            },
+            "description": "O controller lança IllegalStateException citando 'jdbc:h2:mem:testdb', mas o cliente recebe apenas 'Erro interno. Tente novamente mais tarde.' enquanto o detalhe completo vai para o log do servidor."
+          }
+        },
+        {
+          "name": "2.4 Armadilha do Handler Genérico -> 400 Bad Request (sem cookie user-id)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/boas-vindas/estrito",
+              "host": ["{{baseUrl}}"],
+              "path": ["boas-vindas", "estrito"]
+            },
+            "description": "Sem estender ResponseEntityExceptionHandler, este 400 do Spring MVC viraria 500 por causa do @ExceptionHandler(Exception.class)."
+          }
+        },
+        {
+          "name": "2.5 Rate Limiter (rode 2x em < 10s) -> 429 Too Many Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/alunos",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos"]
+            },
+            "description": "1ª chamada devolve 200 OK; 2ª chamada em menos de 10 segundos lança RequestNotPermitted e devolve 429 Too Many Requests."
+          }
+        },
+        {
+          "name": "2.6 Bean Validation (@Valid) com JSON inválido -> 400 Bad Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Oi\",\n  \"email\": \"email-invalido\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/alunos",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos"]
+            },
+            "description": "Demonstra handleMethodArgumentNotValid listando os campos que falharam na validação sem expor classes internas."
+          }
+        },
+        {
+          "name": "2.7 Bean Validation (@Valid) com JSON válido -> 201 Created",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Lanterna Verde\",\n  \"email\": \"hal@ada.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/alunos",
+              "host": ["{{baseUrl}}"],
+              "path": ["alunos"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

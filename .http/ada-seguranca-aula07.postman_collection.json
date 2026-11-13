@@ -1,0 +1,339 @@
+{
+  "info": {
+    "_postman_id": "a7f01307-0007-4007-8007-000000000007",
+    "name": "Ada Segurança — Aula 07 (Spring Security 6 Nativo: Basic Auth & JWT)",
+    "description": "Coleção da Aula 07 do módulo BE-JV-013 (Fundamentos de Segurança para Aplicações).\n\nComo iniciar a API:\n`mvn -pl aula07 spring-boot:run`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "tokenAna",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenCarlos",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Parte 1 — Rotas Públicas, Cadastro (BCrypt) e HTTP Basic Auth",
+      "item": [
+        {
+          "name": "1.1 Rota Pública (GET /publico) -> 200 OK",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/publico",
+              "host": ["{{baseUrl}}"],
+              "path": ["publico"]
+            }
+          }
+        },
+        {
+          "name": "1.2 Rota Protegida SEM credenciais (GET /perfil) -> 401 Unauthorized",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/perfil",
+              "host": ["{{baseUrl}}"],
+              "path": ["perfil"]
+            }
+          }
+        },
+        {
+          "name": "1.3 Cadastrar Usuária Ana (POST /user) -> 201 Created (Hash BCrypt)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ana\",\n  \"password\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["user"]
+            }
+          }
+        },
+        {
+          "name": "1.4 Cadastrar Username Duplicado (POST /user) -> 409 Conflict",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ana\",\n  \"password\": \"outra-senha\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["user"]
+            }
+          }
+        },
+        {
+          "name": "1.5 Etapa 1: Acessar /perfil com HTTP Basic Auth (ana:senha123) -> 200 OK",
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "ana",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "senha123",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/perfil",
+              "host": ["{{baseUrl}}"],
+              "path": ["perfil"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parte 2 — JWT Nativo (JwtEncoder / JwtDecoder) & Regra de Propriedade",
+      "item": [
+        {
+          "name": "2.1 Autenticar Ana (POST /authenticate) -> Salva {{tokenAna}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('tokenAna', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ana\",\n  \"password\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/authenticate",
+              "host": ["{{baseUrl}}"],
+              "path": ["authenticate"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Senha Errada no /authenticate -> 401 ('Usuário ou senha inválidos.')",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ana\",\n  \"password\": \"errada\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/authenticate",
+              "host": ["{{baseUrl}}"],
+              "path": ["authenticate"]
+            }
+          }
+        },
+        {
+          "name": "2.3 Usuário Inexistente no /authenticate -> 401 (Mesma mensagem anti-enumeração!)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"fantasma\",\n  \"password\": \"qualquer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/authenticate",
+              "host": ["{{baseUrl}}"],
+              "path": ["authenticate"]
+            }
+          }
+        },
+        {
+          "name": "2.4 Acessar /perfil com Bearer {{tokenAna}} -> 200 OK",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAna}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/perfil",
+              "host": ["{{baseUrl}}"],
+              "path": ["perfil"]
+            }
+          }
+        },
+        {
+          "name": "2.5 Ana abre Chamado #1 (POST /chamados com {{tokenAna}}) -> 201 Created",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAna}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Impressora parada\",\n  \"descricao\": \"Não imprime no 3º andar\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chamados",
+              "host": ["{{baseUrl}}"],
+              "path": ["chamados"]
+            }
+          }
+        },
+        {
+          "name": "2.6 Ana consulta próprio Chamado #1 (GET /chamados/1) -> 200 OK",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAna}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chamados/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["chamados", "1"]
+            }
+          }
+        },
+        {
+          "name": "2.7 Cadastrar Segundo Usuário: Carlos (POST /user) -> 201 Created",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"carlos\",\n  \"password\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["user"]
+            }
+          }
+        },
+        {
+          "name": "2.8 Autenticar Carlos (POST /authenticate) -> Salva {{tokenCarlos}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('tokenCarlos', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"carlos\",\n  \"password\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/authenticate",
+              "host": ["{{baseUrl}}"],
+              "path": ["authenticate"]
+            }
+          }
+        },
+        {
+          "name": "2.9 REGRA DE PROPRIEDADE: Carlos tenta ler Chamado #1 da Ana -> 404 Not Found!",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenCarlos}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chamados/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["chamados", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
